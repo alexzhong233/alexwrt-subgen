@@ -37,7 +37,9 @@ define Package/luci-app-subgen/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/subgen.init $(1)/etc/init.d/subgen
 	$(INSTALL_DIR) $(1)/etc/subgen
-	$(INSTALL_CONF) ./files/config.yaml $(1)/etc/subgen/config.yaml
+	# 用入库的模板，不用 files/config.yaml：后者含真实订阅 token，被 .gitignore 排除，
+	# 固件构建是 clone 仓库的，拿不到那个文件就会在 install 阶段报 No such file。
+	$(INSTALL_CONF) ./files/config.default.yaml $(1)/etc/subgen/config.yaml
 	$(INSTALL_DATA) ./files/base.yaml $(1)/etc/subgen/base.yaml
 	$(INSTALL_DATA) ./files/rules_inline.yaml $(1)/etc/subgen/rules_inline.yaml
 	$(INSTALL_DATA) ./files/rules_providers.yaml $(1)/etc/subgen/rules_providers.yaml
