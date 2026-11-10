@@ -1,0 +1,17 @@
+# ===== 绝不入库：含你的订阅 token / 节点密码 =====
+config.yaml
+config.yaml.bak
+# build.sh 从本地 config.yaml（或模板）生成，名字固定叫 config.yaml
+luci-app/files/config.yaml
+packaging/docker/config.yaml
+
+# ===== 运行期数据 =====
+cache/
+data/
+out*.yaml
+
+# ===== 编译产物：只留两个给在线安装脚本用的二进制 =====
+dist/*
+!dist/subgen-linux-arm64
+!dist/subgen-linux-amd64
+subgen.exe

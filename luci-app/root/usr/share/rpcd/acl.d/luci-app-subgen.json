@@ -1,0 +1,17 @@
+{
+	"luci-app-subgen": {
+		"description": "subgen 订阅转换控制台",
+		"read": {
+			"ubus": {
+				"session": [ "access" ],
+				"luci": [ "getBoardJSON", "getStatus" ]
+			},
+			"subgen": [ "status", "start", "stop", "restart" ],
+			"uci": [ "subgen" ]
+		},
+		"write": {
+			"subgen": [ "status", "start", "stop", "restart" ],
+			"uci": [ "subgen" ]
+		}
+	}
+}

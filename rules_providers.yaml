@@ -1,0 +1,49 @@
+# 远程规则模式（rule-providers）示例
+# 用法：把 config.yaml 里的 rules: 改成 rules_providers.yaml
+#
+# 注意：mihomo 自己拉这些 url 是【直连】的，raw.githubusercontent.com 在国内基本不通。
+#   方案一：给 provider 加 proxy: '🚀节点选择'（开机时如果代理还没起来会拿不到，但有本地上次缓存就没事）
+#   方案二：把文件下到本地，url 改成本机/局域网 http 地址，或者用 type: file 直接指路径
+#   方案三：用 Aethersailor 那套 .list，格式改成 behavior: classical / format: yaml，url 指向你自己的镜像
+rule-providers:
+  geosite-cn:
+    type: http
+    behavior: domain
+    format: mrs
+    url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs'
+    path: ./ruleset/geosite-cn.mrs
+    interval: 86400
+    # proxy: '🚀节点选择'
+  geoip-cn:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs'
+    path: ./ruleset/geoip-cn.mrs
+    interval: 86400
+    # proxy: '🚀节点选择'
+  geosite-gfw:
+    type: http
+    behavior: domain
+    format: mrs
+    url: 'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gfw.mrs'
+    path: ./ruleset/geosite-gfw.mrs
+    interval: 86400
+    # proxy: '🚀节点选择'
+
+rules:
+  # 自己加的固定规则永远放最前面
+  - 'DOMAIN,aiii.doyo.icu,mac-netbird'
+  - 'DOMAIN-SUFFIX,doyo.icu,mac-netbird'
+
+  # 局域网/保留地址直连
+  - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'
+  - 'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve'
+  - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'
+  - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'
+  - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
+
+  - 'RULE-SET,geosite-cn,DIRECT'
+  - 'RULE-SET,geoip-cn,DIRECT'
+  - 'RULE-SET,geosite-gfw,🚀节点选择'
+  - 'MATCH,🐟漏网之鱼'

@@ -1,0 +1,150 @@
+# subgen 配置模板
+#
+# 这个文件是公开仓库里的模板，不含任何真实订阅和密码。
+# 装好之后在 LuCI（服务 → 订阅转换）里填，或者直接编辑这份的副本。
+#
+# 生成的配置会写到同目录 config.yaml；第一次启动时如果 config.yaml 不存在，
+# 程序会拿这份当默认值。
+
+listen: 0.0.0.0:25500          # LuCI 页面要从浏览器连过来，所以监听 LAN；只在内网用
+token: alexwrt                # 订阅地址里的令牌，改掉它：/<token>/sub
+cache_ttl: 3600               # 订阅缓存秒数：机场有拉取频率限制，别调太小
+cache_dir: /etc/subgen/cache  # 上一次成功的内容会落盘，机场挂了拿它兜底
+base: base.yaml               # mihomo 的固定部分（端口/模式/dns 等）
+rules_mode: inline            # inline = 用下面的 rules 文件；providers = 用 rule_sets
+rules: rules_inline.yaml
+
+# 自定义规则：永远排在所有规则最前面，命中即停
+custom_rules: []
+
+# providers 模式下勾选的远程规则集，例：{id: geosite-cn, target: DIRECT}
+rule_sets: []
+
+# 订阅里这些“假节点”（显示剩余流量的那种）直接丢掉，否则组内测速一直 connect refused
+drop_nodes:
+  - 剩余流量.*
+  - 套餐到期.*
+
+# 订阅里没有的单独连接，直接写在这。类型支持 socks5/http/ss/trojan/vmess/vless/hysteria2
+static_proxies:
+  - name: zanz
+    type: socks5
+    server: 127.0.0.1        # 换成真实地址
+    port: 1080
+    username: zanz
+    password: ""             # 填密码
+    udp: true
+    skip-cert-verify: true
+  - name: mac-netbird
+    type: socks5
+    server: 100.64.0.1       # 换成 Tailscale/NetBird 里的内网地址
+    port: 7898
+    udp: true
+
+# 机场订阅。name 会被 groups 里的 source 引用；primary 只是标记，不影响生成
+subscriptions:
+  - name: 按量
+    url: https://example.com/api/v1/pq/你的按量订阅token
+    ua: clash.meta
+    primary: true
+  - name: 时间
+    url: https://example.com/api/v1/client/subscribe?token=你的时间订阅token
+    ua: clash.meta
+
+# 分级：优先顺序由 🚀主出口 那个 fallback 的 members 顺序决定，不是这里的上下位置
+groups:
+  - name: ⏱时间订阅池
+    kind: sub
+    type: url-test
+    source: 时间
+    url: http://cp.cloudflare.com/generate_204
+    interval: 21600           # 时间订阅拉不动时把间隔放宽，少浪费流量
+    tolerance: 100
+    lazy: true
+
+  - name: 📊按量订阅池
+    kind: sub
+    type: url-test
+    source: 按量
+    url: http://cp.cloudflare.com/generate_204
+    interval: 3600            # 60 节点 5 分钟一轮 ≈ 1GB/月；1 小时 + lazy 降到 35MB
+    tolerance: 100
+    lazy: true
+
+  # 降级链：zanz 优先，挂了走时间订阅，再走按量订阅，最后直连
+  # @组名 是引用另一个组；被引用的组整组跳过时这里会自动剔除，不会留下坏引用
+  - name: 🚀主出口
+    kind: custom
+    type: fallback
+    members:
+      - zanz
+      - "@⏱时间订阅池"
+      - "@📊按量订阅池"
+      - DIRECT
+    url: http://cp.cloudflare.com/generate_204
+    interval: 180
+    timeout: 3000
+
+  # 下面几个组把流量收口到主出口；规则里 90% 的条目指向 🚀节点选择
+  - name: 🚀节点选择
+    kind: custom
+    type: select
+    members:
+      - "@🚀主出口"
+    include_all: true         # 下拉里同时列出订阅全部节点，方便手动切
+  - name: 🐟漏网之鱼
+    kind: custom
+    type: select
+    members:
+      - "@🚀节点选择"
+      - DIRECT
+    include_all: true
+  - name: 🎬媒体解锁
+    kind: custom
+    type: select
+    members:
+      - "@🚀节点选择"
+      - DIRECT
+    include_all: true
+  - name: 🤖AI网站
+    kind: custom
+    type: select
+    members:
+      - "@🚀节点选择"
+      - DIRECT
+    include_all: true
+  - name: 🛑广告拦截
+    kind: custom
+    type: select
+    members:
+      - REJECT
+      - DIRECT
+
+  # 地区组按名字正则挑节点，订阅改名也不会失联
+  - name: 🇯🇵日本节点
+    kind: sub
+    type: url-test
+    source: 按量,时间          # 多个订阅合并，逗号分隔
+    filter: (日本|东京|東京|大阪)
+    url: http://cp.cloudflare.com/generate_204
+    interval: 600
+    tolerance: 50
+    lazy: true
+  - name: 🇸🇬狮城节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (新加坡|狮城|獅城)
+    url: http://cp.cloudflare.com/generate_204
+    interval: 600
+    tolerance: 50
+    lazy: true
+  - name: 🇺🇸美国节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (美国|美國|圣何塞|洛杉矶)
+    url: http://cp.cloudflare.com/generate_204
+    interval: 600
+    tolerance: 50
+    lazy: true

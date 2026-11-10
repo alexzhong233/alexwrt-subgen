@@ -1,0 +1,37 @@
+#!/bin/sh
+# rpcd 执行插件：给 LuCI 页面提供“启动/停止/状态”，不用常驻进程
+. /lib/functions.sh
+
+CONF="$(uci -q get subgen.cfg.config || echo /etc/subgen/config.yaml)"
+
+case "$1" in
+list)
+	cat <<'EOF'
+{ "status": { }, "start": { }, "stop": { }, "restart": { } }
+EOF
+	;;
+call)
+	read -r _input
+	case "$2" in
+	status)
+		if /etc/init.d/subgen running >/dev/null 2>&1; then R=1; else R=0; fi
+		printf '{ "running": %s, "config": "%s" }\n' "$R" "$CONF"
+		;;
+	start)
+		/etc/init.d/subgen start >/dev/null 2>&1
+		printf '{ "ok": true }\n'
+		;;
+	stop)
+		/etc/init.d/subgen stop >/dev/null 2>&1
+		printf '{ "ok": true }\n'
+		;;
+	restart)
+		/etc/init.d/subgen restart >/dev/null 2>&1
+		printf '{ "ok": true }\n'
+		;;
+	*)
+		printf '{ "error": "unknown method" }\n'
+		;;
+	esac
+	;;
+esac

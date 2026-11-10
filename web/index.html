@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>subgen 控制台</title>
+<style>
+  body { font: 13px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; margin: 0; padding: 16px; background: #f4f5f7; color: #222; }
+  @media (prefers-color-scheme: dark) { body { background: #16181d; color: #e6e6e6; } }
+  .btn { border: 1px solid #ccd3dc; background: #fff; color: #222; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
+  @media (prefers-color-scheme: dark) { .btn { background: #23262d; color: #e6e6e6; border-color: #3a3f48; } }
+  .cbi-button-apply { background: #2b7de9; border-color: #2b7de9; color: #fff; }
+  .cbi-button-add { background: #eef7ee; border-color: #b6d9b6; color: #1f5f1f; }
+  .cbi-button-remove { background: #fdeeee; border-color: #e3b6b6; color: #8f2f2f; }
+  .cbi-input-text, .cbi-input-select, .cbi-input-textarea { border: 1px solid #ccd3dc; border-radius: 5px; padding: 4px 6px; font-size: 12px; background: #fff; color: inherit; }
+  @media (prefers-color-scheme: dark) { .cbi-input-text, .cbi-input-select, .cbi-input-textarea { background: #23262d; border-color: #3a3f48; color: #e6e6e6; } }
+  .cbi-map { max-width: 1500px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div id="host"></div>
+<script>
+/* 在 LuCI 之外跑同一份 UI：补上 view / ui / E / L 四个桩，然后把 ui.js 当函数体求值 */
+window.SUBGEN_STANDALONE = true;   /* 告诉 UI：没有 rpcd，启停走 /api/quit */
+window.view = { extend: function (o) { return o; } };
+window.ui = { addNotification: function () { } };
+window.E = function (tag, attrs, kids) {
+	var n = document.createElement(tag);
+	attrs = attrs || {};
+	Object.keys(attrs).forEach(function (k) {
+		if (k === 'class') n.className = attrs[k];
+		else if (k === 'text') n.textContent = attrs[k];
+		else if (typeof attrs[k] === 'function') n.addEventListener(k, attrs[k]);
+		else if (attrs[k] === true) n.setAttribute(k, '');
+		else if (attrs[k] !== false && attrs[k] !== null && attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
+	});
+	(kids || []).forEach(function (c) {
+		n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+	});
+	return n;
+};
+
+fetch('ui.js?v=' + Date.now()).then(function (r) {
+	if (!r.ok) throw new Error('HTTP ' + r.status);
+	return r.text();
+}).then(function (src) {
+	var factory = new Function('view', 'ui', 'E', 'L', src);
+	var v = factory(window.view, window.ui, window.E, { class: 'cbi-map' });
+	document.getElementById('host').appendChild(v.render());
+}).catch(function (e) {
+	document.getElementById('host').textContent = '控制台加载失败：' + e;
+});
+</script>
+</body>
+</html>

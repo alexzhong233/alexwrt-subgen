@@ -1,0 +1,17 @@
+# 路由器上的脚本必须 LF，否则 /etc/init.d/subgen、rpcd 插件会报 not found
+*.sh            text eol=lf
+*.command       text eol=lf
+*.init          text eol=lf
+*.bat           text eol=crlf
+luci-app/root/usr/libexec/rpcd/*  text eol=lf
+luci-app/root/etc/uci-defaults/*  text eol=lf
+
+# 配置/规则/前端也统一 LF，Windows 上 clone 下来直接 scp 到路由器不会坏
+*.yaml          text eol=lf
+*.js            text eol=lf
+*.json          text eol=lf
+*.md            text eol=lf
+
+luci-app/files/subgen             binary
+dist/subgen-*                     binary
+*.exe                             binary

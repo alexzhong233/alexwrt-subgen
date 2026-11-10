@@ -1,0 +1,11 @@
+#!/bin/sh
+# 首次装好（或升级后还没这个文件）时，把配置路径固定下来写进 /etc/config/subgen。
+# /etc/config/ 整个目录会被 sysupgrade 保留，所以“升级后还用哪个配置文件”这件事不会丢。
+[ -f /etc/config/subgen ] && exit 0
+
+cat > /etc/config/subgen <<'EOF'
+config subgen 'cfg'
+	option config '/etc/subgen/config.yaml'
+EOF
+
+exit 0

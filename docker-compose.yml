@@ -1,0 +1,19 @@
+services:
+  subgen:
+    build:
+      context: .
+      dockerfile: packaging/docker/Dockerfile
+      args:
+        BIN: dist/subgen-linux-arm64     # x86 小主机改成 dist/subgen-linux-amd64
+    image: alexwrt-subgen:latest
+    container_name: subgen
+    restart: unless-stopped
+    # host 网络：容器内监听 0.0.0.0:25500 就等于路由器本体监听，Nikki 和浏览器都能直连
+    network_mode: host
+    volumes:
+      - ../subgen-data:/app/cache
+    logging:
+      driver: json-file
+      options:
+        max-size: "2m"
+        max-file: "2"
