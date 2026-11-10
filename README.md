@@ -41,8 +41,11 @@ sh scripts/build.sh
 | `dist/subgen-macos-arm64.tar.gz` | **macOS M 芯片**：解压 → `start.command` / `sync-once.command` / `schedule.command`（launchd） |
 | `dist/subgen-macos-amd64.tar.gz` | macOS Intel |
 | `luci-app/` | **OpenWrt 进固件**：丢进 `package/`，`CONFIG_PACKAGE_luci-app-subgen=y` |
-| `dist/subgen-openwrt-arm64.tar.gz` | **OpenWrt 免包管理**：解到 `/` 即可（见下） |
+| `dist/subgen-openwrt-{arm64,amd64}.tar.gz` | **OpenWrt 离线安装**：解开 → `sh install.sh`（见下） |
 | `docker compose up -d --build` | 路由器 / NAS 上跑，Nikki 订它的 `/sub` |
+
+> 仓库里只有 `dist/subgen-linux-{arm64,amd64}` 两个二进制（在线安装用）；zip / tar 包在本地 `build.sh` 生成，不入库。
+> 真实订阅和节点密码只在你自己机器的 `config.yaml` 里（已 gitignore），仓库里放的是模板 `config.example.yaml`。
 
 ### Windows / macOS
 
@@ -54,16 +57,55 @@ macOS 首次会被 Gatekeeper 拦（二进制没签名）：右键 → 打开，
 
 ### OpenWrt
 
-进固件：把 `luci-app/` 放进固件源码 `package/`，装好后菜单「服务 → 订阅转换」。包内有 `/usr/bin/subgen`、`/etc/subgen/*.yaml`、`/etc/init.d/subgen`、rpcd 插件、LuCI 页面；安装脚本会自动 enable 一次。
-`luci-app/Makefile` 里 `PKGARCH:=aarch64_cortex-a53`，二进制是 arm64 静态编译，换架构先跑 `build.sh` 再改这行。
+三种装法，任选一种。装完都是：菜单「服务 → 订阅转换」，或直接 `http://路由器IP:25500/<token>/admin`。
 
-不进固件：
+**① 路由器上一条命令（推荐，不用传文件）**
 
 ```sh
-scp -O dist/subgen-openwrt-arm64.tar.gz root@192.168.88.1:/tmp/
-ssh root@192.168.88.1 'cd / && tar -xzf /tmp/subgen-openwrt-arm64.tar.gz && chmod +x /usr/bin/subgen /etc/init.d/subgen
-  /etc/init.d/subgen enable && /etc/init.d/subgen start
-  /etc/init.d/rpcd restart; rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache'
+wget -O - https://raw.githubusercontent.com/alexzhong233/alexwrt-subgen/main/scripts/remote-install.sh | sh
+```
+
+raw 拉不动（国内常见）就换镜像：
+
+```sh
+wget -O - https://cdn.jsdelivr.net/gh/alexzhong233/alexwrt-subgen@main/scripts/remote-install.sh | sh
+```
+
+也可以自己给加速前缀：
+
+```sh
+wget -O - .../remote-install.sh | SUBGEN_MIRROR=https://ghfast.top/https://raw.githubusercontent.com/alexzhong233/alexwrt-subgen/main sh
+```
+
+**② 电脑上一条命令（走 ssh，不依赖 GitHub 连通性）**
+
+```sh
+sh scripts/install-openwrt.sh root@192.168.88.1
+```
+
+自动探测路由器架构（aarch64 / x86_64）挑二进制，打包推上去再装。加 `-f` 覆盖路由上已有的 `config.yaml`，`-n` 只装不启动。Windows 上用 Git Bash 跑。
+
+**③ 进固件**
+
+把 `luci-app/` 放进固件源码 `package/`，`.config` 里 `CONFIG_PACKAGE_luci-app-subgen=y`。
+包内有 `/usr/bin/subgen`、`/etc/subgen/*.yaml`、`/etc/init.d/subgen`、rpcd 插件、LuCI 页面、uci-defaults。
+`luci-app/Makefile` 里 `PKGARCH:=aarch64_cortex-a53`，二进制是 arm64 静态编译，换架构先跑 `build.sh` 再改这行。
+
+**安装脚本做了什么**
+
+`luci-app/install.sh`（三个入口跑的其实是同一个）：
+
+1. 停止旧服务，把旧二进制备份成 `/usr/bin/subgen.old`
+2. 铺二进制、init 脚本、规则文件；**`/etc/subgen/config.yaml` 已存在就保留**，不覆盖你的订阅
+3. 首次写入 `/etc/config/subgen`（`option config '/etc/subgen/config.yaml'`）——`/etc/config` 会被 sysupgrade 保留，所以**升级固件后配置路径不丢**
+4. 铺 LuCI 页面、rpcd 插件、uci-defaults，清 LuCI 缓存并重启 rpcd（否则新菜单不出现）
+5. `enable` + `start`，最后打印控制台与订阅地址
+
+卸载：
+
+```sh
+sh /tmp/subgen-remote/uninstall.sh          # 保留 /etc/subgen
+PURGE=1 sh /tmp/subgen-remote/uninstall.sh  # 连配置一起删
 ```
 
 ## 后端启停（重点：不必常驻）
