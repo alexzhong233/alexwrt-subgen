@@ -14,4 +14,8 @@ out*.yaml
 dist/*
 !dist/subgen-linux-arm64
 !dist/subgen-linux-amd64
+# 在线安装（scripts/remote-install.sh）只发一次请求，靠这两个包；
+# 里面用的是 config.example.yaml 模板，不含任何订阅信息
+!dist/subgen-openwrt-arm64.tar.gz
+!dist/subgen-openwrt-amd64.tar.gz
 subgen.exe

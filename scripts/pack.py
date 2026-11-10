@@ -116,7 +116,10 @@ def main():
             ('uninstall.sh', os.path.join(ROOT, 'luci-app/uninstall.sh')),
             ('usr/bin/subgen', bin_path),
             ('etc/init.d/subgen', os.path.join(ROOT, 'luci-app/files/subgen.init')),
-            ('etc/subgen/config.yaml', os.path.join(ROOT, CONF_FILE)),
+            # 这个 tar.gz 会配合 scripts/remote-install.sh 用，并且**入库**（在线安装只发一次请求），
+            # 所以必须用公开模板，绝不能用 CONF_FILE —— 否则本机 config.yaml 里的订阅 token
+            # 和节点密码会跟着二进制一起进公开仓库。装好后用户在 LuCI 或 /admin 页面自己填。
+            ('etc/subgen/config.yaml', os.path.join(ROOT, 'config.example.yaml')),
             ('etc/subgen/base.yaml', os.path.join(ROOT, 'base.yaml')),
             ('etc/subgen/rules_inline.yaml', os.path.join(ROOT, 'rules_inline.yaml')),
             ('etc/subgen/rules_providers.yaml', os.path.join(ROOT, 'rules_providers.yaml')),
