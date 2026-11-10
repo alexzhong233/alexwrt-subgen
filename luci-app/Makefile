@@ -53,6 +53,9 @@ define Package/luci-app-subgen/install
 	$(INSTALL_BIN) ./root/usr/libexec/rpcd/subgen $(1)/usr/libexec/rpcd/subgen
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./root/etc/uci-defaults/90_subgen $(1)/etc/uci-defaults/90_subgen
+	# sysupgrade 时保留 /etc/subgen（订阅/规则/缓存），否则刷机后配置路径还在、文件没了
+	$(INSTALL_DIR) $(1)/lib/upgrade/keep.d
+	$(INSTALL_DATA) ./root/lib/upgrade/keep.d/luci-app-subgen $(1)/lib/upgrade/keep.d/luci-app-subgen
 endef
 
 define Package/luci-app-subgen/postinst

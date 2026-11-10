@@ -14,11 +14,24 @@ base: base.yaml               # mihomo 的固定部分（端口/模式/dns 等�
 rules_mode: inline            # inline = 用下面的 rules 文件；providers = 用 rule_sets
 rules: rules_inline.yaml
 
-# 自定义规则：永远排在所有规则最前面，命中即停
-custom_rules: []
+# 自定义规则：永远排在所有规则最前面，命中即停。
+# 订阅自带 9265 条规则，但国内很多 .com/.ai 站点不在里面，会一路落到 MATCH 走代理，
+# 所以常用的国内服务建议在这里显式直连。
+custom_rules:
+  - DOMAIN-SUFFIX,workbuddy.com,DIRECT
+  - DOMAIN-SUFFIX,codebuddy.ai,DIRECT
+  - DOMAIN-SUFFIX,codebuddy.com,DIRECT
+  - DOMAIN-SUFFIX,woa.com,DIRECT
+  - DOMAIN-SUFFIX,tencentcloudapi.com,DIRECT
 
 # providers 模式下勾选的远程规则集，例：{id: geosite-cn, target: DIRECT}
 rule_sets: []
+
+# 有没有匹配上任何规则时的去向 —— 这条决定整体模式：
+#   DIRECT          白名单模式（等价 passwall 的 gfwlist）：规则点名的才走代理，其余全直连
+#   🐟漏网之鱼      黑名单模式（订阅默认）：规则没提到的也走代理
+#   留空            沿用规则文件里原本的 MATCH
+final: DIRECT
 
 # 订阅里这些“假节点”（显示剩余流量的那种）直接丢掉，否则组内测速一直 connect refused
 drop_nodes:

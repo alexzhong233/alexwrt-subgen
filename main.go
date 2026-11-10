@@ -84,6 +84,9 @@ type Config struct {
 	RulesMode   string      `yaml:"rules_mode" json:"rules_mode"` // inline | providers
 	Rules       string      `yaml:"rules" json:"rules"`
 	CustomRules []string    `yaml:"custom_rules" json:"custom_rules"`
+	// Final 是「一条规则都没匹配上」时的去向。留空 = 沿用规则文件里的 MATCH（订阅作者一般写代理组）；
+	// 填 DIRECT 就是白名单模式：只有规则明确点名的域名走代理，其余全直连
+	Final string `yaml:"final,omitempty" json:"final"`
 	RuleSets    []RuleSet   `yaml:"rule_sets" json:"rule_sets"`
 	DropNodes   []string    `yaml:"drop_nodes" json:"drop_nodes"`
 	Static      []Node      `yaml:"static_proxies" json:"static_proxies"`
@@ -885,14 +888,23 @@ func (a *App) buildRules() (map[string][]string, []string, error) {
 	}
 
 	hasMatch := false
-	for _, r := range rules {
-		if strings.HasPrefix(strings.TrimSpace(strings.ToUpper(r)), "MATCH,") {
+	for i := len(rules) - 1; i >= 0; i-- {
+		if strings.HasPrefix(strings.TrimSpace(strings.ToUpper(rules[i])), "MATCH,") {
 			hasMatch = true
+			// final 非空就把兜底目标换掉：填 DIRECT 就是「白名单模式」，
+			// 只有订阅规则明确点名的才走代理，其余全直连（等价 passwall 的 gfwlist 模式）
+			if a.cfg.Final != "" {
+				rules[i] = "MATCH," + a.cfg.Final
+			}
 			break
 		}
 	}
 	if !hasMatch {
-		rules = append(rules, "MATCH,🐟漏网之鱼")
+		final := a.cfg.Final
+		if final == "" {
+			final = "🐟漏网之鱼"
+		}
+		rules = append(rules, "MATCH,"+final)
 	}
 	return providers, rules, nil
 }

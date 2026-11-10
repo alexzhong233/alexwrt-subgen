@@ -69,6 +69,7 @@ done <<-'EOF'
 	usr/share/rpcd/acl.d/luci-app-subgen.json|luci-app/root/usr/share/rpcd/acl.d/luci-app-subgen.json
 	usr/libexec/rpcd/subgen|luci-app/root/usr/libexec/rpcd/subgen
 	etc/uci-defaults/90_subgen|luci-app/root/etc/uci-defaults/90_subgen
+	lib/upgrade/keep.d/luci-app-subgen|luci-app/root/lib/upgrade/keep.d/luci-app-subgen
 EOF
 
 chmod 0755 "$WORK/install.sh" "$WORK/uninstall.sh" "$WORK/usr/bin/subgen" \

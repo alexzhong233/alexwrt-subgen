@@ -96,6 +96,15 @@ if [ -f "$SRC/etc/uci-defaults/90_subgen" ]; then
 	/etc/uci-defaults/90_subgen >/dev/null 2>&1
 fi
 
+# ---------- keep.d：刷机时保留 /etc/subgen ----------
+mkdir -p /lib/upgrade/keep.d
+if [ -f "$SRC/lib/upgrade/keep.d/luci-app-subgen" ]; then
+	cp -f "$SRC/lib/upgrade/keep.d/luci-app-subgen" /lib/upgrade/keep.d/luci-app-subgen
+	chmod 0644 /lib/upgrade/keep.d/luci-app-subgen
+else
+	echo "/etc/subgen/" > /lib/upgrade/keep.d/luci-app-subgen
+fi
+
 # ---------- 清 LuCI 缓存并重启 rpcd（否则新菜单/ACL 不生效）----------
 rm -rf /tmp/luci-indexcache /tmp/luci-indexcache.* /tmp/luci-modulecache 2>/dev/null
 /etc/init.d/rpcd restart >/dev/null 2>&1

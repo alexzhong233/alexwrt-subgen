@@ -132,6 +132,8 @@ def main():
              os.path.join(ROOT, 'luci-app/root/usr/libexec/rpcd/subgen')),
             ('etc/uci-defaults/90_subgen',
              os.path.join(ROOT, 'luci-app/root/etc/uci-defaults/90_subgen')),
+            ('lib/upgrade/keep.d/luci-app-subgen',
+             os.path.join(ROOT, 'luci-app/root/lib/upgrade/keep.d/luci-app-subgen')),
         ]
         write_tar('subgen-openwrt-%s.tar.gz' % arch, items)
 
