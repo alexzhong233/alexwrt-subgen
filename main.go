@@ -643,6 +643,14 @@ func (a *App) fetchSub(s SubConfig) *cachedSub {
 }
 
 func (a *App) download(url, ua string) ([]Node, string, error) {
+	/*
+	 * 模板里的订阅地址是 example.com / 你的token 这种占位，直接报
+	 * 「HTTP 404 / HTTP 400」看不出是哪儿的问题，给一句能照着改的提示。
+	 */
+	if isPlaceholderURL(url) {
+		return nil, "", fmt.Errorf("订阅地址还是模板占位，请在「订阅」页填真实地址")
+	}
+
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, "", err
@@ -671,8 +679,15 @@ func (a *App) download(url, ua string) ([]Node, string, error) {
 	return nodes, resp.Header.Get("Subscription-Userinfo"), nil
 }
 
-func parseProxyBody(body []byte) ([]Node, error) {
-	var wrap struct {
+// 模板占位地址：example.com 域名，或者中文占位「你的…token」。
+func isPlaceholderURL(u string) bool {
+	low := strings.ToLower(u)
+	return strings.Contains(low, "example.com") ||
+		strings.Contains(low, "example.org") ||
+		strings.Contains(u, "你的")
+}
+
+func parseProxyBody(body []byte) ([]Node, error) {	var wrap struct {
 		Proxies []Node `yaml:"proxies"`
 	}
 	if err := yaml.Unmarshal(body, &wrap); err == nil && len(wrap.Proxies) > 0 {

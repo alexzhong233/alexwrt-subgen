@@ -77,4 +77,11 @@ define Package/luci-app-subgen/prerm
 exit 0
 endef
 
+# 声明成 conffile，升级包时保留用户填好的订阅地址和 token。
+# 没有这一段，装新固件会把 /etc/subgen/config.yaml 覆盖回模板 ——
+# 表现就是页面还在、订阅全 404/400（模板里是 example.com 占位地址）。
+define Package/luci-app-subgen/conffiles
+/etc/subgen/config.yaml
+endef
+
 $(eval $(call BuildPackage,luci-app-subgen))

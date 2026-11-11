@@ -4,13 +4,15 @@
 		"read": {
 			"ubus": {
 				"session": [ "access" ],
-				"luci": [ "getBoardJSON", "getStatus" ]
+				"luci": [ "getBoardJSON", "getStatus" ],
+				"subgen": [ "status", "start", "stop", "restart" ]
 			},
-			"subgen": [ "status", "start", "stop", "restart" ],
 			"uci": [ "subgen" ]
 		},
 		"write": {
-			"subgen": [ "status", "start", "stop", "restart" ],
+			"ubus": {
+				"subgen": [ "status", "start", "stop", "restart" ]
+			},
 			"uci": [ "subgen" ]
 		}
 	}
