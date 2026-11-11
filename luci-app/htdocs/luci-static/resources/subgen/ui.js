@@ -55,7 +55,10 @@ function btn(label, fn, cls) {
 }
 
 function inp(value, onchange, attrs) {
-	var a = { class: 'cbi-input-text', value: value === null || value === undefined ? '' : value, change: function () { onchange(this.value); } };
+	// 用 input 而不是 change：change 只在失焦时触发，粘完链接直接点保存
+	// （或直接切标签页）就会丢掉最后输入的内容。schedulePreview 自带 700ms
+	// 防抖，逐字触发也不会打服务端。
+	var a = { class: 'cbi-input-text', value: value === null || value === undefined ? '' : value, input: function () { onchange(this.value); } };
 	Object.keys(attrs || {}).forEach(function (k) { a[k] = attrs[k]; });
 	return el('input', a);
 }
@@ -233,10 +236,34 @@ function secSubs() {
 		list.appendChild(row);
 	});
 	box.appendChild(list);
-	box.appendChild(btn('+ 添加订阅', function () {
-		ST.cfg.subscriptions.push({ name: '订阅' + (ST.cfg.subscriptions.length + 1), url: '', ua: 'clash.meta', primary: ST.cfg.subscriptions.length === 0 });
-		paint();
+
+	/* 手动添加：以前只有「+ 添加订阅」，点了先插入一行空表再逐格填，还不
+	 * 会校验；粘一条链接进去忘了点保存就等于没加。改成和「静态连接」一样
+	 * 的表单，填完点按钮一次性入库。 */
+	var f = { name: '', url: '', ua: 'clash.meta' };
+	var addRow = el('div', { class: 'sg-addrow' });
+	addRow.appendChild(inp('', function (v) { f.name = v; }, { placeholder: '名字（备注，可空）' }));
+	addRow.appendChild(inp('', function (v) { f.url = v; }, { placeholder: '订阅链接 http(s)://…' }));
+	addRow.appendChild(inp('', function (v) { f.ua = v; }, { placeholder: 'UA（默认 clash.meta）' }));
+	addRow.appendChild(btn('+ 手动订阅', function () {
+		var url = (f.url || '').trim();
+		if (!url) { status('订阅链接不能为空', 'err'); return; }
+		if (!/^(https?|file):\/\//i.test(url)) { status('订阅链接要以 http:// 或 https:// 开头', 'err'); return; }
+		if (ST.cfg.subscriptions.some(function (x) { return (x.url || '').trim() === url; })) {
+			status('这条订阅已经在列表里了', 'err'); return;
+		}
+		ST.cfg.subscriptions.push({
+			name: (f.name || '').trim() || ('订阅' + (ST.cfg.subscriptions.length + 1)),
+			url: url,
+			ua: (f.ua || '').trim() || 'clash.meta',
+			primary: ST.cfg.subscriptions.length === 0
+		});
+		f.name = ''; f.url = ''; f.ua = 'clash.meta';
+		paint(); schedulePreview();
+		status('已加入订阅列表（还没保存，别忘了点保存）', 'ok');
 	}, 'cbi-button-add'));
+	box.appendChild(addRow);
+
 	return box;
 }
 
