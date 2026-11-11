@@ -156,6 +156,49 @@ subgen -c config.yaml -once > out.yaml  # 生成一次，打到 stdout
 **实时预览**：任何编辑 700ms 后把**未保存**的配置发到服务端干跑（`POST /api/render`，不落盘、不重启），显示节点数 / 组数 / 规则数 / 体积 / 每条订阅这一轮的拉取结果 / 每组前几个成员 / 生成的 YAML。
 「保存并生效」才写回 `config.yaml`（旧文件存 `config.yaml.bak`；保存前先试生成，生成不出来拒绝保存）。
 
+## ACL4SSR 规则集（对齐 subconverter / OpenClash 在线转换）
+
+在线转换服务（`sub.xeton.dev`、`api.dler.io`）背后跑的是 subconverter + ACL4SSR 那套 `.ini`。
+仓库里带了两个文件，把那套分组原样搬了过来，不用自己重写：
+
+| 文件 | 内容 |
+|---|---|
+| `rules_acl4ssr.yaml` | 32 个 rule-providers + 34 条 RULE-SET，组名与 ACL4SSR 一致 |
+| `config.acl4ssr.yaml` | 配套 29 个代理组，地区正则和成员顺序照抄 `ACL4SSR_Online_Full.ini` |
+
+用法：
+
+```sh
+cp config.yaml config.yaml.bak        # 先备份
+cp config.acl4ssr.yaml config.yaml    # 填上自己的订阅和静态节点
+subgen -c config.yaml -gen out.yaml
+```
+
+生成配置的体积从 **500 KB 降到 45 KB** —— 规则内容不再内联，由 mihomo 按 `interval`
+拉取并缓存在 `./ruleset/`。
+
+几个坑：
+
+- url 统一走 `ghfast.top` 加速前缀，直连 `raw.githubusercontent.com` 在国内拉不动。
+  要换镜像改 `rules_acl4ssr.yaml` 里的前缀即可。
+- 首次启动要联网拉 32 个文件，之后一天一次（`interval: 86400`）。开机时如果代理还没
+  起来会拉不到，但有上次的本地缓存就不影响使用。
+- **组名必须和 RULE-SET 的目标一字不差**。改了一个忘了另一个，mihomo 会直接拒绝启动。
+  改完跑一次交叉校验：
+
+```sh
+python - <<'EOF'
+import yaml
+cfg=yaml.safe_load(open('config.acl4ssr.yaml')); rules=yaml.safe_load(open('rules_acl4ssr.yaml'))
+groups={g['name'] for g in cfg['groups']}
+bad=[r.split(',')[2] for r in rules['rules'] if r.startswith('RULE-SET,') and r.split(',')[2] not in groups]
+print('缺组:', bad or '无')
+EOF
+```
+
+- `rules_mode: providers` 现在会读规则文件里的 `rule-providers:` 段（`main.go` 的
+  `buildRules`），所以自定义规则集不必再改 Go 源码。代码里的内置预设只是叠加层。
+
 ## HTTP 接口
 
 | 路径 | 说明 |

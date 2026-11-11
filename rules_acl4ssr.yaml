@@ -1,0 +1,310 @@
+# ACL4SSR 规则集（subconverter / OpenClash 在线转换用的就是这套）
+#
+# 用法：把 config.yaml 里的
+#     rules_mode: inline
+#     rules: rules_inline.yaml
+# 换成
+#     rules_mode: providers
+#     rules: rules_acl4ssr.yaml
+#
+# 和 rules_inline.yaml 的区别：
+#   · inline 是 9265 条规则全量内联，生成的 yaml 约 500 KB，客户端每次更新都要重解析
+#   · 这一份只写 RULE-SET 引用，体积几 KB，规则内容由 mihomo 按 interval 拉取并缓存在本地
+#   · 代价是首次启动要联网拉 30 多个文件，国内 raw.githubusercontent.com 不通，
+#     所以 url 统一走 ghfast.top 加速前缀
+#
+# 组名和 ACL4SSR 原生配置完全一致（🎯 全球直连 / 📲 电报消息 / 🎮 游戏平台 …），
+# 配套的分组定义见 config.acl4ssr.yaml，两边必须一起换。
+#
+# ⚠️ 顺序不能乱：ACL4SSR 是先「广告拦截 / 应用净化」再「国内直连」，最后 GEOIP,CN 兜底。
+#    把广告拦截挪到 GEOIP,CN 后面会漏掉全部国内广告域名。
+
+rule-providers:
+  # ── 直连类 ────────────────────────────────────────────────
+  acl-lan:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list'
+    path: ./ruleset/acl-lan.list
+    interval: 86400
+  acl-unban:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list'
+    path: ./ruleset/acl-unban.list
+    interval: 86400
+  acl-googlecn:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list'
+    path: ./ruleset/acl-googlecn.list
+    interval: 86400
+  acl-steamcn:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list'
+    path: ./ruleset/acl-steamcn.list
+    interval: 86400
+  acl-chinaip:
+    type: http
+    behavior: ipcidr
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIp.list'
+    path: ./ruleset/acl-chinaip.list
+    interval: 86400
+  acl-chinadomain:
+    type: http
+    behavior: domain
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list'
+    path: ./ruleset/acl-chinadomain.list
+    interval: 86400
+  acl-chinacompanyip:
+    type: http
+    behavior: ipcidr
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list'
+    path: ./ruleset/acl-chinacompanyip.list
+    interval: 86400
+  acl-download:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list'
+    path: ./ruleset/acl-download.list
+    interval: 86400
+
+  # ── 拦截类 ────────────────────────────────────────────────
+  acl-banad:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list'
+    path: ./ruleset/acl-banad.list
+    interval: 86400
+  acl-banprogramad:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list'
+    path: ./ruleset/acl-banprogramad.list
+    interval: 86400
+
+  # ── 大厂服务（尽量直连，Apple/Microsoft 尤其不能代理）────────
+  acl-apple:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list'
+    path: ./ruleset/acl-apple.list
+    interval: 86400
+  acl-microsoft:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list'
+    path: ./ruleset/acl-microsoft.list
+    interval: 86400
+  acl-onedrive:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list'
+    path: ./ruleset/acl-onedrive.list
+    interval: 86400
+  acl-bing:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Bing.list'
+    path: ./ruleset/acl-bing.list
+    interval: 86400
+  acl-googlefcm:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list'
+    path: ./ruleset/acl-googlefcm.list
+    interval: 86400
+
+  # ── 通讯 / AI ─────────────────────────────────────────────
+  acl-telegram:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list'
+    path: ./ruleset/acl-telegram.list
+    interval: 86400
+  acl-ai:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list'
+    path: ./ruleset/acl-ai.list
+    interval: 86400
+  acl-openai:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list'
+    path: ./ruleset/acl-openai.list
+    interval: 86400
+
+  # ── 游戏平台 ──────────────────────────────────────────────
+  acl-epic:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list'
+    path: ./ruleset/acl-epic.list
+    interval: 86400
+  acl-origin:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Origin.list'
+    path: ./ruleset/acl-origin.list
+    interval: 86400
+  acl-sony:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list'
+    path: ./ruleset/acl-sony.list
+    interval: 86400
+  acl-steam:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list'
+    path: ./ruleset/acl-steam.list
+    interval: 86400
+  acl-nintendo:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list'
+    path: ./ruleset/acl-nintendo.list
+    interval: 86400
+
+  # ── 流媒体 ────────────────────────────────────────────────
+  acl-youtube:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list'
+    path: ./ruleset/acl-youtube.list
+    interval: 86400
+  acl-netflix:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list'
+    path: ./ruleset/acl-netflix.list
+    interval: 86400
+  acl-bahamut:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list'
+    path: ./ruleset/acl-bahamut.list
+    interval: 86400
+  acl-bilibilihmt:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list'
+    path: ./ruleset/acl-bilibilihmt.list
+    interval: 86400
+  acl-bilibili:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list'
+    path: ./ruleset/acl-bilibili.list
+    interval: 86400
+  acl-neteasemusic:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/NetEaseMusic.list'
+    path: ./ruleset/acl-neteasemusic.list
+    interval: 86400
+  acl-chinamedia:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list'
+    path: ./ruleset/acl-chinamedia.list
+    interval: 86400
+  acl-proxymedia:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list'
+    path: ./ruleset/acl-proxymedia.list
+    interval: 86400
+
+  # ── 被墙域名（只走节点选择，不落到漏网之鱼）───────────────
+  acl-proxygfwlist:
+    type: http
+    behavior: classical
+    format: text
+    url: 'https://ghfast.top/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list'
+    path: ./ruleset/acl-proxygfwlist.list
+    interval: 86400
+
+rules:
+  # ===== 拦截必须排在最前，否则会被后面的直连规则抢走 =====
+  - 'RULE-SET,acl-banad,🛑 广告拦截'
+  - 'RULE-SET,acl-banprogramad,🍃 应用净化'
+
+  # ===== 本机/内网 =====
+  - 'RULE-SET,acl-lan,🎯 全球直连'
+
+  # ===== 大厂服务：直连优先，别浪费流量 =====
+  - 'RULE-SET,acl-apple,🍎 苹果服务'
+  - 'RULE-SET,acl-microsoft,Ⓜ️ 微软服务'
+  - 'RULE-SET,acl-onedrive,Ⓜ️ 微软云盘'
+  - 'RULE-SET,acl-bing,Ⓜ️ 微软Bing'
+  - 'RULE-SET,acl-googlefcm,📢 谷歌FCM'
+  - 'RULE-SET,acl-googlecn,🎯 全球直连'
+  - 'RULE-SET,acl-steamcn,🎯 全球直连'
+
+  # ===== 通讯 / AI =====
+  - 'RULE-SET,acl-telegram,📲 电报消息'
+  - 'RULE-SET,acl-ai,💬 Ai平台'
+  - 'RULE-SET,acl-openai,💬 Ai平台'
+
+  # ===== 游戏平台（ACL4SSR 默认直连，国内平台别走代理）=====
+  - 'RULE-SET,acl-epic,🎮 游戏平台'
+  - 'RULE-SET,acl-origin,🎮 游戏平台'
+  - 'RULE-SET,acl-sony,🎮 游戏平台'
+  - 'RULE-SET,acl-steam,🎮 游戏平台'
+  - 'RULE-SET,acl-nintendo,🎮 游戏平台'
+
+  # ===== 流媒体 =====
+  - 'RULE-SET,acl-youtube,📹 油管视频'
+  - 'RULE-SET,acl-netflix,🎥 奈飞视频'
+  - 'RULE-SET,acl-bahamut,📺 巴哈姆特'
+  - 'RULE-SET,acl-bilibilihmt,📺 哔哩哔哩'
+  - 'RULE-SET,acl-bilibili,📺 哔哩哔哩'
+  - 'RULE-SET,acl-neteasemusic,🎶 网易音乐'
+  - 'RULE-SET,acl-chinamedia,🌏 国内媒体'
+  - 'RULE-SET,acl-proxymedia,🌍 国外媒体'
+
+  # ===== 被墙域名 =====
+  - 'RULE-SET,acl-proxygfwlist,🚀 节点选择'
+
+  # ===== 国内 IP / 域名，最后兜底直连 =====
+  - 'RULE-SET,acl-chinaip,🎯 全球直连'
+  - 'RULE-SET,acl-chinadomain,🎯 全球直连'
+  - 'RULE-SET,acl-chinacompanyip,🎯 全球直连'
+  - 'RULE-SET,acl-download,🎯 全球直连'
+  - 'GEOIP,LAN,🎯 全球直连,no-resolve'
+  - 'GEOIP,CN,🎯 全球直连'
+  - 'MATCH,🐟 漏网之鱼'

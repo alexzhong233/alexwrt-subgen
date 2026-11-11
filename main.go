@@ -886,20 +886,48 @@ func (a *App) buildRules() (map[string][]string, []string, error) {
 		}
 	}
 
-	// 内联规则文件
-	if a.cfg.RulesMode != "providers" {
+	// 规则文件：两种模式都读。
+	//   · inline    只用文件里的 rules: 段（9265 条全量内联）
+	//   · providers 用文件里的 rule-providers: + rules: 段（自定义 RULE-SET）
+	// 之前 providers 模式完全不读文件，等于自定义规则集必须先进代码里的 presetByID，
+	// 外部想塞一份 ACL4SSR 那样的规则清单就得改 Go 源码。现在文件里的
+	// rule-providers 段会原样转换成 YAML 子行合并进 providers，presets 只是叠加层。
+	if a.cfg.Rules != "" {
 		raw, err := os.ReadFile(a.resolve(a.cfg.Rules))
 		if err != nil {
-			return nil, nil, fmt.Errorf("读规则文件失败: %w", err)
+			// providers 模式允许规则文件不存在（全用内置预设）；
+			// inline 模式文件是必需品，读不到直接失败更好排查。
+			if a.cfg.RulesMode != "providers" {
+				return nil, nil, fmt.Errorf("读规则文件失败: %w", err)
+			}
+			log.Printf("[规则] 规则文件 %s 读不到，只用内置预设: %v", a.cfg.Rules, err)
+		} else {
+			var doc struct {
+				RuleProviders map[string]any `yaml:"rule-providers"`
+				Rules         []string       `yaml:"rules"`
+			}
+			if err := yaml.Unmarshal(raw, &doc); err != nil {
+				return nil, nil, fmt.Errorf("解析规则文件失败: %w", err)
+			}
+			for id, v := range doc.RuleProviders {
+				if _, exists := providers[id]; exists {
+					continue
+				}
+				sub, err := yaml.Marshal(v)
+				if err != nil {
+					log.Printf("[规则] provider %s 序列化失败，跳过: %v", id, err)
+					continue
+				}
+				var lines []string
+				for _, ln := range strings.Split(strings.TrimRight(string(sub), "\n"), "\n") {
+					if strings.TrimSpace(ln) != "" {
+						lines = append(lines, ln)
+					}
+				}
+				providers[id] = lines
+			}
+			rules = append(rules, doc.Rules...)
 		}
-		var doc struct {
-			RuleProviders map[string]any `yaml:"rule-providers"`
-			Rules         []string       `yaml:"rules"`
-		}
-		if err := yaml.Unmarshal(raw, &doc); err != nil {
-			return nil, nil, fmt.Errorf("解析规则文件失败: %w", err)
-		}
-		rules = append(rules, doc.Rules...)
 	}
 
 	hasMatch := false

@@ -1,0 +1,349 @@
+# ACL4SSR 分组版配置模板
+#
+# 和 config.example.yaml 的区别：分组结构照抄 subconverter 的 ACL4SSR_Online_Full.ini，
+# 组名和它完全一致，配套规则集见 rules_acl4ssr.yaml。两个文件要一起换：
+#
+#   cp config.acl4ssr.yaml config.yaml
+#   # 然后把 rules: 指向 rules_acl4ssr.yaml（本文件里已经指好了）
+#
+# 组名必须和 rules_acl4ssr.yaml 里 RULE-SET 的目标名一字不差，否则规则找不到组，
+# mihomo 会拒绝启动。
+
+listen: 0.0.0.0:25500
+token: alexwrt
+cache_ttl: 3600
+cache_dir: /etc/subgen/cache
+base: base.yaml
+rules_mode: providers          # 走 rule-providers，不再内联 9k 条
+rules: rules_acl4ssr.yaml
+
+# 自定义规则永远排在 ACL4SSR 那 30 多个 RULE-SET 之前，命中即停。
+# 自己环境里的固定去向写这里，别去改 rules_acl4ssr.yaml。
+custom_rules:
+  # NetBird 内网：必须直连，否则 mihomo 会试图"代理"到 100.x，直接死循环
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+  - DOMAIN,aiii.doyo.icu,mac-netbird
+  - DOMAIN-SUFFIX,doyo.icu,mac-netbird
+
+  # Steam：下载是纯 IP 直连（没有域名），DOMAIN 规则管不到，只能按网段堵。
+  # 只列主用段，全量段见 README。
+  - IP-CIDR,103.28.54.0/24,DIRECT,no-resolve
+  - IP-CIDR,155.133.224.0/19,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,steamcontent.com,DIRECT
+  - DOMAIN-SUFFIX,steamserver.net,DIRECT
+
+rule_sets: []
+
+final: ""
+
+drop_nodes:
+  - 剩余流量.*
+  - 套餐到期.*
+  - 官网.*
+
+static_proxies:
+  # 模板占位，换成你自己的。type 支持 socks5 / http / ss / trojan / vmess / vless / hysteria2
+  - name: zanz
+    type: socks5
+    server: 127.0.0.1
+    port: 1080
+    username: zanz
+    password: ""
+    udp: true
+    skip-cert-verify: true
+  # NetBird / Tailscale 之类的内网出口，server 填对端在 mesh 网段里的地址
+  - name: mac-netbird
+    type: socks5
+    server: 100.64.0.1
+    port: 7898
+    udp: true
+
+subscriptions:
+  - name: 按量
+    url: https://example.com/api/v1/pq/你的按量订阅token
+    ua: clash.meta
+    primary: true
+  - name: 时间
+    url: https://example.com/api/v1/client/subscribe?token=你的时间订阅token
+    ua: clash.meta
+
+groups:
+  # ── 基础两层 ──────────────────────────────────────────────
+  # ACL4SSR 的 ♻️ 自动选择 = 全部节点测速选最快
+  - name: ♻️ 自动选择
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: true
+
+  # ACL4SSR 的 🚀 节点选择 = 手动选择，默认指向自动选择
+  - name: 🚀 节点选择
+    kind: custom
+    type: select
+    members:
+      - "@♻️ 自动选择"
+      - zanz
+      - mac-netbird
+      - DIRECT
+    include_all: true
+
+  # ACL4SSR 没有"主出口降级链"的概念，这里补一条，按量/时间谁有流量用谁
+  - name: 🚀 主出口
+    kind: custom
+    type: fallback
+    members:
+      - zanz
+      - "@♻️ 自动选择"
+      - DIRECT
+    url: http://cp.cloudflare.com/generate_204
+    interval: 180
+    timeout: 3000
+
+  - name: 🐟 漏网之鱼
+    kind: custom
+    type: select
+    members:
+      - "@🚀 节点选择"
+      - "@🚀 主出口"
+      - "@♻️ 自动选择"
+      - DIRECT
+    include_all: true
+
+  - name: 🎯 全球直连
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🚀 节点选择"
+    include_all: true
+
+  # ── 拦截类 ────────────────────────────────────────────────
+  - name: 🛑 广告拦截
+    kind: custom
+    type: select
+    members:
+      - REJECT
+      - DIRECT
+
+  - name: 🍃 应用净化
+    kind: custom
+    type: select
+    members:
+      - REJECT
+      - DIRECT
+
+  # ── 地区组（ACL4SSR 的正则原样搬过来）──────────────────────
+  - name: 🇭🇰 香港节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (港|HK|hk|Hong Kong|HongKong|hongkong)
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: true
+
+  - name: 🇯🇵 日本节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (日本|川日|东京|大阪|泉日|埼玉|沪日|深日|JP|Japan)
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: true
+
+  - name: 🇺🇲 美国节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (美|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|拉斯维加斯|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|US|United States)
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 150
+    lazy: true
+
+  - name: 🇨🇳 台湾节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (台|新北|彰化|TW|Taiwan)
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: true
+
+  - name: 🇸🇬 狮城节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (新加坡|坡|狮城|SG|Singapore)
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: true
+
+  - name: 🇰🇷 韩国节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (KR|Korea|KOR|首尔|韩|韓)
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: true
+
+  # ── 流媒体 ────────────────────────────────────────────────
+  - name: 🎥 奈飞节点
+    kind: sub
+    type: url-test
+    source: 按量,时间
+    filter: (NF|奈飞|解锁|Netflix|NETFLIX|Media)
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: true
+
+  - name: 🎥 奈飞视频
+    kind: custom
+    type: select
+    members:
+      - "@🎥 奈飞节点"
+      - "@🚀 节点选择"
+      - "@♻️ 自动选择"
+      - DIRECT
+    include_all: true
+
+  - name: 📹 油管视频
+    kind: custom
+    type: select
+    members:
+      - "@🚀 节点选择"
+      - "@♻️ 自动选择"
+      - "@🇸🇬 狮城节点"
+      - "@🇭🇰 香港节点"
+      - DIRECT
+    include_all: true
+
+  - name: 📺 巴哈姆特
+    kind: custom
+    type: select
+    members:
+      - "@🇨🇳 台湾节点"
+      - "@🚀 节点选择"
+      - DIRECT
+    include_all: true
+
+  - name: 📺 哔哩哔哩
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🇨🇳 台湾节点"
+      - "@🇭🇰 香港节点"
+    include_all: true
+
+  - name: 🌍 国外媒体
+    kind: custom
+    type: select
+    members:
+      - "@🚀 节点选择"
+      - "@♻️ 自动选择"
+      - "@🇭🇰 香港节点"
+      - DIRECT
+    include_all: true
+
+  - name: 🌏 国内媒体
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🇭🇰 香港节点"
+      - "@🇨🇳 台湾节点"
+    include_all: true
+
+  - name: 🎶 网易音乐
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🚀 节点选择"
+      - "@♻️ 自动选择"
+    include_all: true
+
+  # ── 通讯 / AI ─────────────────────────────────────────────
+  - name: 📲 电报消息
+    kind: custom
+    type: select
+    members:
+      - "@🚀 节点选择"
+      - "@♻️ 自动选择"
+      - "@🇸🇬 狮城节点"
+      - DIRECT
+    include_all: true
+
+  - name: 💬 Ai平台
+    kind: custom
+    type: select
+    members:
+      - "@🚀 节点选择"
+      - "@♻️ 自动选择"
+      - "@🇺🇲 美国节点"
+      - "@🇯🇵 日本节点"
+      - DIRECT
+    include_all: true
+
+  # ── 大厂服务 ──────────────────────────────────────────────
+  - name: 🍎 苹果服务
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🚀 节点选择"
+      - "@🇺🇲 美国节点"
+    include_all: true
+
+  - name: Ⓜ️ 微软服务
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🚀 节点选择"
+    include_all: true
+
+  - name: Ⓜ️ 微软云盘
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🚀 节点选择"
+    include_all: true
+
+  - name: Ⓜ️ 微软Bing
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🚀 节点选择"
+    include_all: true
+
+  - name: 📢 谷歌FCM
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🚀 节点选择"
+    include_all: true
+
+  - name: 🎮 游戏平台
+    kind: custom
+    type: select
+    members:
+      - DIRECT
+      - "@🚀 节点选择"
+      - "@🇺🇲 美国节点"
+      - "@🇯🇵 日本节点"
+    include_all: true

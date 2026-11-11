@@ -43,6 +43,10 @@ define Package/luci-app-subgen/install
 	$(INSTALL_DATA) ./files/base.yaml $(1)/etc/subgen/base.yaml
 	$(INSTALL_DATA) ./files/rules_inline.yaml $(1)/etc/subgen/rules_inline.yaml
 	$(INSTALL_DATA) ./files/rules_providers.yaml $(1)/etc/subgen/rules_providers.yaml
+	# ACL4SSR 那套分组（对齐 subconverter / OpenClash 在线转换），
+	# 想切换时 cp config.acl4ssr.yaml /etc/subgen/config.yaml 即可
+	$(INSTALL_DATA) ./files/rules_acl4ssr.yaml $(1)/etc/subgen/rules_acl4ssr.yaml
+	$(INSTALL_DATA) ./files/config.acl4ssr.yaml $(1)/etc/subgen/config.acl4ssr.yaml
 	$(INSTALL_DIR) $(1)/www/luci-static/resources/view/subgen
 	$(INSTALL_DATA) ./htdocs/luci-static/resources/view/subgen/config.js $(1)/www/luci-static/resources/view/subgen/config.js
 	$(INSTALL_DIR) $(1)/www/luci-static/resources/subgen

@@ -27,7 +27,7 @@ CONF_SRC=config.yaml
 [ -f "$CONF_SRC" ] || CONF_SRC=config.example.yaml
 echo "  配置源：$CONF_SRC"
 cp "$CONF_SRC" luci-app/files/config.yaml
-cp base.yaml rules_inline.yaml rules_providers.yaml luci-app/files/
+cp base.yaml rules_inline.yaml rules_providers.yaml rules_acl4ssr.yaml config.acl4ssr.yaml luci-app/files/
 mkdir -p packaging/docker
 sed 's|^cache_dir: .*|cache_dir: /app/cache       # 容器内路径，compose 里挂到 ./data|' "$CONF_SRC" \
 	> packaging/docker/config.yaml
